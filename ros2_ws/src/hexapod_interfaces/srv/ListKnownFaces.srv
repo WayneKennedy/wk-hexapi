@@ -1,0 +1,7 @@
+# List all known faces in the recognition model
+
+# Request (empty)
+---
+# Response
+string[] identities    # List of known identity names
+uint32[] image_counts  # Number of training images per identity

@@ -1,0 +1,42 @@
+# Hexapod Perception Configuration
+# Camera and face recognition parameters
+
+hexapod_perception:
+  ros__parameters:
+
+    # Camera Configuration
+    camera:
+      width: 640
+      height: 480
+      fps: 30.0
+      horizontal_flip: false
+      vertical_flip: false
+      # Backend: "picamera2" for Pi Camera (OV5647), "opencv" for USB cameras
+      backend: "picamera2"
+      # Device ID for OpenCV backend (usually 0 for /dev/video0)
+      device_id: 0
+
+    # Face Recognition Configuration
+    face_recognition:
+      # Process every Nth frame (at 30fps, 10 = ~3fps recognition)
+      process_every_n_frames: 10
+
+      # Detection model: "hog" (faster, CPU) or "cnn" (more accurate, GPU)
+      detection_model: "hog"
+
+      # Recognition tolerance (lower = stricter matching)
+      # Range: 0.4 (very strict) to 0.6 (lenient)
+      recognition_tolerance: 0.6
+
+      # Minimum face size in pixels to detect
+      min_face_size: 20
+
+      # Storage path for face data (training images and encodings)
+      storage_path: "~/.hexapod/face_recognition"
+
+      # Enable event publishing (/face_recognition/events)
+      enable_events: true
+
+      # Cooldown between unknown face events (seconds)
+      # Prevents spam when unknown face remains in view
+      unknown_face_cooldown: 5.0

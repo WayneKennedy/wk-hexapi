@@ -1,0 +1,9 @@
+# Train/retrain the face recognition model from stored training images
+
+# Request (empty - trains on all captured images)
+---
+# Response
+bool success
+string message              # Success/error message
+string[] trained_identities # List of identities in the trained model
+uint32 total_encodings      # Total face encodings generated

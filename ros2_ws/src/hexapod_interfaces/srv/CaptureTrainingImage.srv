@@ -1,0 +1,9 @@
+# Capture a training image for face recognition
+
+# Request
+string person_name    # Name of person to capture training image for
+---
+# Response
+bool success
+string message        # Success/error message
+uint32 total_images   # Total training images now stored for this person

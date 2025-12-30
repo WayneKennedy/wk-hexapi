@@ -14,6 +14,11 @@ services:
       - /dev/spidev0.0:/dev/spidev0.0  # SPI (WS2812 LEDs)
       - /dev/spidev0.1:/dev/spidev0.1
       - /dev/gpiomem:/dev/gpiomem   # GPIO memory access
+      # Pi Camera (OV5647) via libcamera - needs media controller and DMA
+      - /dev/video0:/dev/video0
+      - /dev/media0:/dev/media0
+      - /dev/media1:/dev/media1
+      - /dev/dma_heap:/dev/dma_heap
 
     # Required for hardware access
     privileged: true
@@ -27,10 +32,14 @@ services:
       - ./ros2_ws/src:/ros2_ws/src:rw
       - ./config:/ros2_ws/config:ro
       - ./reference:/ros2_ws/reference:ro
+      # Face recognition data (training images and encodings)
+      - ~/.hexapod:/root/.hexapod:rw
       # Persist build artifacts
       - ros2_build:/ros2_ws/build
       - ros2_install:/ros2_ws/install
       - ros2_log:/ros2_ws/log
+      # udev database for libcamera device discovery
+      - /run/udev:/run/udev:ro
 
     # Environment variables
     environment:
