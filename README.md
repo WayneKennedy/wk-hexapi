@@ -35,6 +35,57 @@ The Freenove repository also contains:
 - Autonomous mapping and navigation (SLAM + Nav2)
 - Wander mode with return-to-home capability
 
+## Autonomy Roadmap
+
+End state: Robot boots autonomously, accepts high-level mission requests ("walk forward 150mm", "go to kitchen"), and ROS handles planning and execution.
+
+```
+┌─────────────────┐     ┌─────────────┐     ┌────────────────┐     ┌──────────────┐
+│ Mission Request │────▶│    Nav2     │────▶│  /cmd_vel      │────▶│  Controller  │
+│ "go to kitchen" │     │ (planning)  │     │ (velocity)     │     │ (legs move)  │
+└─────────────────┘     └─────────────┘     └────────────────┘     └──────────────┘
+                              ▲                                           │
+                              │              ┌────────────────┐           │
+                              └──────────────│    /odom       │◀──────────┘
+                                             │ (position)     │
+                                             └────────────────┘
+```
+
+### Phase 1: Locomotion (DONE)
+- [x] Hexapod controller with IK and tripod gait
+- [x] cmd_vel subscriber for velocity commands
+- [x] Home, stand, relax poses
+- [x] Initialize service for safe startup
+
+### Phase 2: Odometry (NEXT)
+- [ ] Integrate gait cycles to estimate displacement
+- [ ] Publish `/odom` (nav_msgs/Odometry) with position and velocity
+- [ ] Publish TF transform: `odom` → `base_link`
+- [ ] Fuse with IMU for rotation accuracy
+- [ ] Add `MoveDistance` action server for goal-based movement
+
+### Phase 3: Perception
+- [ ] Configure camera for depth estimation or visual odometry
+- [ ] Ultrasonic sensor for close obstacle detection
+- [ ] Publish sensor data for costmap integration
+
+### Phase 4: SLAM
+- [ ] Configure slam_toolbox or rtabmap
+- [ ] Build occupancy grid from sensors
+- [ ] Save/load maps for persistent navigation
+
+### Phase 5: Navigation (Nav2)
+- [ ] Configure Nav2 with hexapod-specific parameters
+- [ ] Tune local/global planners for hexapod motion
+- [ ] Add semantic waypoints ("kitchen", "charging station")
+- [ ] Implement return-to-home behavior
+
+### Phase 6: Autonomous Operation
+- [ ] Auto-start on boot via systemd
+- [ ] Mission queue for accepting external requests
+- [ ] Battery-aware behavior (return to charge)
+- [ ] Wander mode with exploration
+
 ## Locomotion Controller
 
 The hexapod uses body-centric control where foot positions are defined relative to the body origin, and inverse kinematics calculates all servo angles.

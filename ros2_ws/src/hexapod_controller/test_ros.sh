@@ -41,26 +41,22 @@ ros2 service call /hexapod/initialize std_srvs/srv/Trigger
 
 sleep 2
 
-# Walk forward (6 steps at 25mm each = 150mm)
-# Each gait cycle takes ~1 second, need to wait for completion
+# Walk forward ~150mm continuously
+# At 25mm/cycle and ~0.5s cycle time, need ~3s of continuous commands
 echo ""
-echo ">>> Walking FORWARD (publishing cmd_vel for 6 cycles)..."
-for i in {1..6}; do
-    echo "  Step $i/6"
-    ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 1.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}"
-    sleep 1.2  # Wait for gait cycle to complete
-done
+echo ">>> Walking FORWARD (~150mm continuous)..."
+timeout 3.5s ros2 topic pub /cmd_vel geometry_msgs/msg/Twist \
+    "{linear: {x: 1.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}" \
+    --rate 10 || true
 
 sleep 1
 
-# Walk backward
+# Walk backward ~150mm continuously
 echo ""
-echo ">>> Walking BACKWARD (publishing cmd_vel for 6 cycles)..."
-for i in {1..6}; do
-    echo "  Step $i/6"
-    ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist "{linear: {x: -1.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}"
-    sleep 1.2  # Wait for gait cycle to complete
-done
+echo ">>> Walking BACKWARD (~150mm continuous)..."
+timeout 3.5s ros2 topic pub /cmd_vel geometry_msgs/msg/Twist \
+    "{linear: {x: -1.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}" \
+    --rate 10 || true
 
 sleep 1
 
