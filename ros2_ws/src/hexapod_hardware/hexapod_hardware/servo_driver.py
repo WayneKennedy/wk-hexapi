@@ -12,10 +12,11 @@ Based on working reference implementation in ../fn-hexapod/Code/Server/:
 
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float64MultiArray, Bool
-from geometry_msgs.msg import Point
+from std_msgs.msg import Float64MultiArray, Bool, String
+from std_srvs.srv import Trigger
 import math
 import os
+import time
 
 # Hardware imports
 try:
@@ -209,7 +210,27 @@ class ServoDriver(Node):
             10
         )
 
-        self.get_logger().info('Servo driver started')
+        # Pose command (home, stand, relax)
+        self.pose_sub = self.create_subscription(
+            String,
+            'pose_command',
+            self.pose_callback,
+            10
+        )
+
+        # Safe initialization service - operator must call this explicitly
+        # IMPORTANT: Servos have no position feedback, so operator must ensure
+        # robot is in a safe position before calling this service
+        self.init_service = self.create_service(
+            Trigger,
+            'servo_driver/initialize',
+            self.initialize_callback
+        )
+
+        # Track initialization state
+        self.is_initialized = False
+
+        self.get_logger().info('Servo driver started (NOT initialized - call /servo_driver/initialize when safe)')
 
     def load_calibration(self):
         """Load calibration data from point.txt (fn-hexapod control.py)"""
@@ -427,6 +448,98 @@ class ServoDriver(Node):
             for i in range(16):
                 self.pwm_41.set_pwm_off(i)
         self.get_logger().info('Servos relaxed')
+
+    def home(self):
+        """
+        Move all legs to calibrated home position.
+        From fn-hexapod home.py - leg_position = [140, 0, 0]
+        """
+        self.get_logger().info('Moving to HOME position...')
+        for i in range(6):
+            self.leg_positions[i] = [140, 0, 0]
+        self.set_leg_angles()
+        self.get_logger().info('HOME position set')
+
+    def stand(self, height=30, duration=1.0, steps=50):
+        """
+        Smoothly raise body to standing height.
+        From fn-hexapod stand.py - raises body by lowering z coordinate.
+
+        Args:
+            height: How high to raise body in mm (default 30)
+            duration: Time for smooth transition in seconds
+            steps: Number of interpolation steps
+        """
+        self.get_logger().info(f'Standing up (raising body {height}mm)...')
+
+        # Start position (home)
+        start_z = 0
+        # End position (standing - negative z raises the body)
+        end_z = -height
+
+        for step in range(steps + 1):
+            t = step / steps
+            # Ease in-out for smoother motion
+            t = t * t * (3 - 2 * t)
+
+            current_z = start_z + t * (end_z - start_z)
+
+            for i in range(6):
+                self.leg_positions[i] = [140, 0, current_z]
+
+            self.set_leg_angles()
+            time.sleep(duration / steps)
+
+        self.get_logger().info('STAND position set')
+
+    def pose_callback(self, msg):
+        """Handle pose commands: home, stand, relax"""
+        command = msg.data.lower().strip()
+
+        if command == 'home':
+            self.home()
+        elif command == 'stand':
+            if not self.is_initialized:
+                self.get_logger().warn('Cannot stand - not initialized. Call /servo_driver/initialize first')
+                return
+            self.stand()
+        elif command == 'relax':
+            self.relax_servos()
+        else:
+            self.get_logger().warn(f'Unknown pose command: {command}. Use: home, stand, relax')
+
+    def initialize_callback(self, request, response):
+        """
+        Service callback for safe initialization.
+        IMPORTANT: Operator must ensure robot is in safe position before calling.
+        Servos have no position feedback - this will move all legs!
+        """
+        if self.is_initialized:
+            response.success = True
+            response.message = 'Already initialized'
+            return response
+
+        try:
+            self.get_logger().info('=== INITIALIZING - Moving to home then stand ===')
+
+            # Step 1: Move to home position
+            self.home()
+            time.sleep(0.5)
+
+            # Step 2: Stand up
+            self.stand()
+
+            self.is_initialized = True
+            response.success = True
+            response.message = 'Initialized: home -> stand complete'
+            self.get_logger().info('=== INITIALIZATION COMPLETE ===')
+
+        except Exception as e:
+            response.success = False
+            response.message = f'Initialization failed: {str(e)}'
+            self.get_logger().error(response.message)
+
+        return response
 
     def destroy_node(self):
         # Relax servos on shutdown
