@@ -80,28 +80,80 @@
     <limit lower="-0.5" upper="0.5" effort="1" velocity="1"/>
   </joint>
 
-  <!-- Ultrasonic sensor link - on head -->
-  <link name="ultrasonic_link"/>
-  <joint name="ultrasonic_joint" type="fixed">
-    <parent link="head_tilt_link"/>
-    <child link="ultrasonic_link"/>
-    <origin xyz="0.03 0 0" rpy="0 0 0"/>
-  </joint>
+  <!--
+    Intel RealSense D435i mounted on head
+    Dimensions: 90mm x 25mm x 25mm
+    Replaces: Pi Camera, Ultrasonic sensor
+  -->
 
-  <!-- Camera link - on head -->
-  <link name="camera_link"/>
+  <!-- D435i camera body link -->
+  <link name="camera_link">
+    <visual>
+      <geometry>
+        <box size="0.025 0.090 0.025"/>
+      </geometry>
+      <material name="realsense_grey">
+        <color rgba="0.5 0.5 0.5 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.025 0.090 0.025"/>
+      </geometry>
+    </collision>
+  </link>
   <joint name="camera_joint" type="fixed">
     <parent link="head_tilt_link"/>
     <child link="camera_link"/>
-    <origin xyz="0.02 0 0.01" rpy="0 0 0"/>
+    <origin xyz="0.03 0 0.01" rpy="0 0 0"/>
   </joint>
 
-  <!-- Camera optical frame (Z forward, X right, Y down) -->
-  <link name="camera_optical_frame"/>
-  <joint name="camera_optical_joint" type="fixed">
+  <!-- D435i depth sensor (left IR camera is reference) -->
+  <link name="camera_depth_frame"/>
+  <joint name="camera_depth_joint" type="fixed">
     <parent link="camera_link"/>
-    <child link="camera_optical_frame"/>
+    <child link="camera_depth_frame"/>
+    <origin xyz="0 0.0175 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Depth optical frame (Z forward per ROS convention) -->
+  <link name="camera_depth_optical_frame"/>
+  <joint name="camera_depth_optical_joint" type="fixed">
+    <parent link="camera_depth_frame"/>
+    <child link="camera_depth_optical_frame"/>
     <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+  </joint>
+
+  <!-- D435i RGB camera -->
+  <link name="camera_color_frame"/>
+  <joint name="camera_color_joint" type="fixed">
+    <parent link="camera_link"/>
+    <child link="camera_color_frame"/>
+    <origin xyz="0 -0.0175 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- RGB optical frame -->
+  <link name="camera_color_optical_frame"/>
+  <joint name="camera_color_optical_joint" type="fixed">
+    <parent link="camera_color_frame"/>
+    <child link="camera_color_optical_frame"/>
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+  </joint>
+
+  <!-- D435i IMU -->
+  <link name="camera_imu_optical_frame"/>
+  <joint name="camera_imu_joint" type="fixed">
+    <parent link="camera_link"/>
+    <child link="camera_imu_optical_frame"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Legacy: ultrasonic_link for backwards compatibility (points to depth) -->
+  <link name="ultrasonic_link"/>
+  <joint name="ultrasonic_joint" type="fixed">
+    <parent link="camera_depth_frame"/>
+    <child link="ultrasonic_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
 
   <!-- Laser frame (for future lidar or virtual scan) -->

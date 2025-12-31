@@ -120,6 +120,51 @@ except (ImportError, ModuleNotFoundError):\n\
 RUN pip3 install --break-system-packages \
     face_recognition
 
+# Install Intel RealSense SDK and ROS 2 packages
+# The librealsense SDK requires building from source on arm64
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libssl-dev \
+    libusb-1.0-0-dev \
+    libgtk-3-dev \
+    libglfw3-dev \
+    libgl1-mesa-dev \
+    libglu1-mesa-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build librealsense from source for arm64
+RUN git clone --depth 1 --branch v2.55.1 https://github.com/IntelRealSense/librealsense.git /tmp/librealsense && \
+    cd /tmp/librealsense && \
+    mkdir build && cd build && \
+    cmake .. \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DBUILD_EXAMPLES=false \
+        -DBUILD_GRAPHICAL_EXAMPLES=false \
+        -DBUILD_PYTHON_BINDINGS=true \
+        -DPYTHON_EXECUTABLE=/usr/bin/python3 \
+        -DCMAKE_INSTALL_PREFIX=/usr && \
+    make -j$(nproc) && \
+    make install && \
+    ldconfig && \
+    rm -rf /tmp/librealsense
+
+# Install ROS 2 packages for RealSense and RTAB-Map
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-jazzy-rtabmap-ros \
+    ros-jazzy-depthimage-to-laserscan \
+    ros-jazzy-image-transport \
+    ros-jazzy-image-transport-plugins \
+    ros-jazzy-diagnostic-updater \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone and build realsense-ros wrapper (not available as arm64 binary)
+# Install to /opt/realsense_ros which will be sourced in entrypoint
+RUN mkdir -p /opt/realsense_ros/src && \
+    cd /opt/realsense_ros/src && \
+    git clone --depth 1 --branch 4.55.1 https://github.com/IntelRealSense/realsense-ros.git && \
+    cd /opt/realsense_ros && \
+    . /opt/ros/jazzy/setup.sh && \
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
+
 # Create workspace
 RUN mkdir -p /ros2_ws/src
 WORKDIR /ros2_ws

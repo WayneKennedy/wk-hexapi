@@ -22,12 +22,18 @@ The Freenove repository also contains:
 
 - Raspberry Pi 5 (8GB)
 - 20 servos (18 leg + 2 head pan/tilt) via PCA9685
-- OV5647 camera (on pan/tilt head)
-- Ultrasonic sensor (on pan/tilt head)
-- MPU6050 IMU
+- Intel RealSense D435i (RGB-D camera + IMU on pan/tilt head)
+- MPU6050 IMU (body)
 - ADS7830 ADC for dual battery monitoring
 - WS2812 LEDs
 - Buzzer
+
+### Sensors
+
+The Intel RealSense D435i replaces the original Pi Camera and ultrasonic sensor, providing:
+- RGB camera for face recognition and visual features
+- Depth camera for obstacle detection and SLAM
+- Built-in IMU for visual-inertial odometry
 
 ## Goals
 
@@ -65,16 +71,18 @@ End state: Robot boots autonomously, accepts high-level mission requests ("walk 
 - [x] Add `MoveDistance` action server for goal-based movement
 
 ### Phase 3: Perception (DONE)
-- [ ] Configure camera for depth estimation or visual odometry
-- [x] Ultrasonic sensor driver publishes `/range_finder/range`
-- [x] Nav2 costmap configured to use range data
+- [x] Intel RealSense D435i configured (RGB-D + IMU)
+- [x] Depth to LaserScan conversion for Nav2 costmap
+- [x] Camera frames defined in URDF
+- [ ] Face recognition using RGB stream (future)
 
 ### Phase 4: SLAM (IN PROGRESS)
 - [x] Configure slam_toolbox parameters
 - [x] Add robot URDF with sensor frames
 - [x] SLAM launch file ready
-- [ ] Add lidar or depth camera for proper mapping
-- [ ] Build occupancy grid from sensors
+- [x] RTAB-Map configured for RGB-D visual SLAM
+- [x] RealSense launch file with mapping/localization modes
+- [ ] Test and tune RTAB-Map with physical D435i
 - [ ] Save/load maps for persistent navigation
 
 ### Phase 5: Navigation (IN PROGRESS)
@@ -136,7 +144,11 @@ wk-hexapod/
 │   ├── hexapod_perception/   # Vision and perception
 │   │   ├── camera_node       # Pi Camera publisher
 │   │   └── face_detector     # Face recognition node
+│   ├── hexapod_interfaces/   # Custom action/service definitions
 │   └── hexapod_bringup/      # Launch files and config
+│       ├── config/           # RealSense, RTAB-Map, Nav2 params
+│       ├── launch/           # Robot, SLAM, navigation launch files
+│       └── urdf/             # Robot description (hexapod.urdf)
 ├── config/                   # Hardware calibration
 ├── docker/                   # Docker support files
 ├── scripts/                  # Setup scripts

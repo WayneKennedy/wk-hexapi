@@ -4,6 +4,11 @@ set -e
 # Source ROS 2 Jazzy
 source /opt/ros/jazzy/setup.bash
 
+# Source RealSense ROS wrapper if built
+if [ -f /opt/realsense_ros/install/setup.bash ]; then
+    source /opt/realsense_ros/install/setup.bash
+fi
+
 # Source workspace if built
 if [ -f /ros2_ws/install/setup.bash ]; then
     source /ros2_ws/install/setup.bash
