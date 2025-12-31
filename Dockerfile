@@ -132,7 +132,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Build librealsense from source for arm64
-RUN git clone --depth 1 --branch v2.55.1 https://github.com/IntelRealSense/librealsense.git /tmp/librealsense && \
+# Using v2.56.4 to match realsense-ros ros2-development requirements
+RUN git clone --depth 1 --branch v2.56.4 https://github.com/IntelRealSense/librealsense.git /tmp/librealsense && \
     cd /tmp/librealsense && \
     mkdir build && cd build && \
     cmake .. \
@@ -147,20 +148,22 @@ RUN git clone --depth 1 --branch v2.55.1 https://github.com/IntelRealSense/libre
     ldconfig && \
     rm -rf /tmp/librealsense
 
-# Install ROS 2 packages for RealSense and RTAB-Map
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-jazzy-rtabmap-ros \
+# Install ROS 2 packages for vision pipeline
+# Pin Ubuntu ffmpeg packages to avoid conflicts with Pi repo
+RUN echo 'Package: libavcodec* libavformat* libavutil* libswresample* libswscale*\nPin: release o=Ubuntu\nPin-Priority: 1001' > /etc/apt/preferences.d/ffmpeg-ubuntu && \
+    apt-get update && apt-get install -y --no-install-recommends \
     ros-jazzy-depthimage-to-laserscan \
     ros-jazzy-image-transport \
-    ros-jazzy-image-transport-plugins \
     ros-jazzy-diagnostic-updater \
+    ros-jazzy-cv-bridge \
     && rm -rf /var/lib/apt/lists/*
 
-# Clone and build realsense-ros wrapper (not available as arm64 binary)
+# Clone and build realsense-ros from source (4.56.4 supports Jazzy)
 # Install to /opt/realsense_ros which will be sourced in entrypoint
+# Note: rtabmap-ros can be added later - requires additional setup
 RUN mkdir -p /opt/realsense_ros/src && \
     cd /opt/realsense_ros/src && \
-    git clone --depth 1 --branch 4.55.1 https://github.com/IntelRealSense/realsense-ros.git && \
+    git clone --depth 1 --branch 4.56.4 https://github.com/IntelRealSense/realsense-ros.git && \
     cd /opt/realsense_ros && \
     . /opt/ros/jazzy/setup.sh && \
     colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
