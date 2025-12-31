@@ -44,11 +44,12 @@ hexapod_hardware:
       gyro_range: 250       # +/- 250 deg/s
 
     # Battery Configuration
+    # Physical switches: LOAD (servos) and CTRL (Pi)
     battery:
       publish_rate: 1.0     # Hz
-      voltage_divider: 3.0  # Scaling factor
-      low_voltage_warn: 6.5 # V per cell
-      channels: [0, 4]      # ADC channels for dual batteries
+      low_voltage_warn: 6.5 # V per cell (18650 nominal is 3.7V, warn at ~3.25V)
+      load_channel: 0       # LOAD battery (servos) - ADC channel 0
+      ctrl_channel: 4       # CTRL battery (Pi) - ADC channel 4
 
     # LED Configuration
     leds:

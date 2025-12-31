@@ -22,21 +22,33 @@ except ImportError:
 class ADS7830:
     """ADS7830 ADC driver - adapted from fn-hexapod/Code/Server/adc.py"""
 
+    ADS7830_COMMAND = 0x84
+    ADC_VOLTAGE_COEFFICIENT = 3  # Based on PCB voltage divider
+
     def __init__(self, bus, address=0x48):
         self.bus = smbus.SMBus(bus)
         self.address = address
 
+    def _read_stable_byte(self):
+        """Read a stable byte from the ADC (reads twice until values match)"""
+        while True:
+            value1 = self.bus.read_byte(self.address)
+            value2 = self.bus.read_byte(self.address)
+            if value1 == value2:
+                return value1
+
     def read_channel(self, channel):
         """Read single-ended ADC channel (0-7)"""
-        # Command byte: single-ended, channel select
-        command = 0x84 | ((channel & 0x04) << 4) | ((channel & 0x03) << 2)
+        # Command byte formula from fn-hexapod adc.py
+        command = self.ADS7830_COMMAND | ((((channel << 2) | (channel >> 1)) & 0x07) << 4)
         self.bus.write_byte(self.address, command)
-        return self.bus.read_byte(self.address)
+        return self._read_stable_byte()
 
-    def read_voltage(self, channel, vref=3.3, divider=3.0):
+    def read_voltage(self, channel):
         """Read voltage with scaling for voltage divider"""
+        # Formula from fn-hexapod: value / 255.0 * 5 * coefficient
         raw = self.read_channel(channel)
-        voltage = (raw / 255.0) * vref * divider
+        voltage = raw / 255.0 * 5 * self.ADC_VOLTAGE_COEFFICIENT
         return voltage
 
 
@@ -48,17 +60,18 @@ class BatteryMonitor(Node):
         self.declare_parameter('i2c.bus', 1)
         self.declare_parameter('i2c.ads7830_addr', 0x48)
         self.declare_parameter('battery.publish_rate', 1.0)
-        self.declare_parameter('battery.voltage_divider', 3.0)
         self.declare_parameter('battery.low_voltage_warn', 6.5)
-        self.declare_parameter('battery.channels', [0, 4])
+        # Physical switches: LOAD (servos) and CTRL (Pi)
+        self.declare_parameter('battery.load_channel', 0)  # LOAD battery (servos)
+        self.declare_parameter('battery.ctrl_channel', 4)  # CTRL battery (Pi)
 
         # Get parameters
         bus = self.get_parameter('i2c.bus').value
         addr = self.get_parameter('i2c.ads7830_addr').value
         publish_rate = self.get_parameter('battery.publish_rate').value
-        self.voltage_divider = self.get_parameter('battery.voltage_divider').value
         self.low_voltage = self.get_parameter('battery.low_voltage_warn').value
-        self.channels = self.get_parameter('battery.channels').value
+        self.load_channel = self.get_parameter('battery.load_channel').value
+        self.ctrl_channel = self.get_parameter('battery.ctrl_channel').value
 
         # Initialize ADC
         self.adc = None
@@ -86,42 +99,47 @@ class BatteryMonitor(Node):
         self.get_logger().info(f'Battery monitor started at {publish_rate} Hz')
 
     def publish_battery_status(self):
-        voltages = []
-
+        # Read batteries: LOAD (servos) and CTRL (Pi)
         if self.adc:
             try:
-                for ch in self.channels:
-                    v = self.adc.read_voltage(ch, divider=self.voltage_divider)
-                    voltages.append(v)
+                load_voltage = self.adc.read_voltage(self.load_channel)
+                ctrl_voltage = self.adc.read_voltage(self.ctrl_channel)
             except Exception as e:
                 self.get_logger().warn(f'Failed to read ADC: {e}')
                 return
         else:
             # Simulation mode
-            voltages = [7.4, 7.4]
+            load_voltage = 7.4
+            ctrl_voltage = 7.4
 
-        # Publish voltages
+        # Publish voltages [LOAD, CTRL]
         msg = Float32MultiArray()
-        msg.data = voltages
+        msg.data = [load_voltage, ctrl_voltage]
         self.voltage_pub.publish(msg)
 
-        # Publish diagnostics
+        # Publish diagnostics with physical switch names
         diag = DiagnosticArray()
         diag.header.stamp = self.get_clock().now().to_msg()
 
-        for i, voltage in enumerate(voltages):
+        batteries = [
+            ('LOAD', 'battery_load', load_voltage, 'Servos'),
+            ('CTRL', 'battery_ctrl', ctrl_voltage, 'Pi'),
+        ]
+
+        for name, hw_id, voltage, desc in batteries:
             status = DiagnosticStatus()
-            status.name = f'Battery {i+1}'
-            status.hardware_id = f'battery_{i+1}'
+            status.name = f'Battery {name}'
+            status.hardware_id = hw_id
 
             if voltage < self.low_voltage:
                 status.level = DiagnosticStatus.WARN
-                status.message = 'Low voltage'
+                status.message = f'Low voltage ({desc})'
             else:
                 status.level = DiagnosticStatus.OK
-                status.message = 'OK'
+                status.message = f'OK ({desc})'
 
             status.values.append(KeyValue(key='voltage', value=f'{voltage:.2f}V'))
+            status.values.append(KeyValue(key='description', value=desc))
             diag.status.append(status)
 
         self.diag_pub.publish(diag)
