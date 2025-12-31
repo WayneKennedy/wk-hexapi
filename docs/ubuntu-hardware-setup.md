@@ -102,7 +102,7 @@ sudo apt install python3-smbus
 
 Old Adafruit library is deprecated. Options:
 
-**Option A: Use reference code's custom implementation** (in `reference/pca9685.py`)
+**Option A: Use reference code's custom implementation** (in `../fn-hexapod/Code/Server/pca9685.py`)
 
 **Option B: Use new Adafruit CircuitPython library**
 ```bash
@@ -125,9 +125,9 @@ sudo apt install python3-picamera2
 - V1.0: Uses PWM on GPIO18 - **Not compatible with Pi 5**
 - V2.0: Uses SPI on GPIO10 - **Required for Pi 5**
 
-The hexapod uses PCB V2.0 with Pi 5, so LEDs are driven via SPI (`spi_ledpixel.py`).
+The hexapod uses PCB V2.0 with Pi 5, so LEDs are driven via SPI (`../fn-hexapod/Code/Server/spi_ledpixel.py`).
 
-Configuration in `config/params.json`:
+Configuration in `../fn-hexapod/Code/Server/params.json`:
 ```json
 {
     "Pcb_Version": 2,

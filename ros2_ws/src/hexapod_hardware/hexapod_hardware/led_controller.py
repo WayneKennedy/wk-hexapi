@@ -3,7 +3,7 @@
 LED Controller Node for Hexapod Robot
 Controls WS2812 LEDs via SPI (PCB V2.0 / Pi 5)
 
-Based on reference implementation in reference/spi_ledpixel.py
+Based on working implementation in ../fn-hexapod/Code/Server/spi_ledpixel.py
 """
 
 import rclpy
@@ -21,7 +21,7 @@ except ImportError:
 
 
 class SPILedPixel:
-    """WS2812 LED control via SPI - adapted from reference/spi_ledpixel.py"""
+    """WS2812 LED control via SPI - adapted from fn-hexapod/Code/Server/spi_ledpixel.py"""
 
     def __init__(self, led_count, brightness=255, color_order='GRB'):
         self.led_count = led_count

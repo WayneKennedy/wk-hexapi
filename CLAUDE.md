@@ -2,10 +2,17 @@
 
 ## CRITICAL: This is a ROS 2 Port of Working Code
 
-**The `reference/` directory contains fully functional Python code from Freenove.**
+**Working reference code is in `../fn-hexapod/Code/Server/` (sibling repo).**
+
+Key confirmed-working files:
+- `servo.py` - PCA9685 servo control
+- `home.py` - Calibrated home position
+- `stand.py` - Smooth stand sequence
+- `pca9685.py` - Low-level PWM driver
+- `control.py` - Full gait control and IK
 
 When implementing ANY hardware driver or feature:
-1. **ALWAYS check `reference/` first** - the working code is there
+1. **ALWAYS check `../fn-hexapod/Code/Server/` first** - the working code is there
 2. Port the reference implementation to ROS 2 patterns
 3. Do not reinvent - the Freenove code works on this exact hardware
 
@@ -42,7 +49,7 @@ This runs on a **real, physical Freenove Big Hexapod Kit (FNK0052)** - not simul
 
 ## Key Directories
 
-- `reference/` - **Working Freenove Python code - start here**
+- `../fn-hexapod/Code/Server/` - **Working Freenove Python code - start here**
 - `ros2_ws/src/hexapod_hardware/` - ROS 2 hardware interface nodes
 - `ros2_ws/src/hexapod_bringup/` - Launch files and config
 - `ros2_ws/src/hexapod_perception/` - Camera and vision nodes

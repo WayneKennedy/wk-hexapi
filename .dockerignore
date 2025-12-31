@@ -23,5 +23,4 @@ ros2_ws/log
 docs/
 *.pdf
 
-# Reference code (mounted separately if needed)
-# reference/
+# Reference code is in sibling repo ../fn-hexapod

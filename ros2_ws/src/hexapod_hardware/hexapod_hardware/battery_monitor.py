@@ -3,7 +3,7 @@
 Battery Monitor Node for Hexapod Robot
 Monitors dual battery voltages via ADS7830 ADC
 
-Based on reference implementation in reference/adc.py
+Based on working implementation in ../fn-hexapod/Code/Server/adc.py
 """
 
 import rclpy
@@ -20,7 +20,7 @@ except ImportError:
 
 
 class ADS7830:
-    """ADS7830 ADC driver - adapted from reference/adc.py"""
+    """ADS7830 ADC driver - adapted from fn-hexapod/Code/Server/adc.py"""
 
     def __init__(self, bus, address=0x48):
         self.bus = smbus.SMBus(bus)

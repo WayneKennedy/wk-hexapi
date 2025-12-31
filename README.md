@@ -6,14 +6,17 @@ ROS 2 based autonomous hexapod robot, built on Freenove Big Hexapod hardware.
 
 This project is based on the [Freenove Big Hexapod Robot Kit for Raspberry Pi](https://github.com/Freenove/Freenove_Big_Hexapod_Robot_Kit_for_Raspberry_Pi) (FNK0052).
 
-The original repository contains:
+Working reference code is in `../fn-hexapod/Code/Server/`:
+- `servo.py` - PCA9685 servo control (confirmed working)
+- `home.py` - Calibrated home position (confirmed working)
+- `stand.py` - Smooth stand sequence (confirmed working)
+- `pca9685.py` - Low-level PWM driver
+- `control.py` - Full gait control and IK
+
+The Freenove repository also contains:
 - `Tutorial.pdf` - Comprehensive setup and usage guide
 - `Calibration_Graph.pdf` - Servo calibration reference
-- `About_Battery.pdf` - Battery specifications
 - `Datasheet/` - Component datasheets (PCA9685, MPU6050, ADS7830)
-- `Code/Server-pi5/` - Pi 5 specific server code
-
-The `reference/` directory in this repo contains code copied from the Freenove repository for reference during ROS 2 development.
 
 ## Hardware
 
@@ -43,11 +46,12 @@ wk-hexapi/
 │   │   ├── battery_monitor   # ADS7830 battery status
 │   │   └── led_controller    # WS2812 LED control
 │   └── hexapod_bringup/      # Launch files and config
-├── reference/                # Original Freenove code
 ├── config/                   # Hardware calibration
 ├── docker/                   # Docker support files
 ├── scripts/                  # Setup scripts
 └── docs/                     # Documentation
+
+../fn-hexapod/                # Sibling repo with working Freenove code
 ```
 
 ## Quick Start (Docker - Recommended)

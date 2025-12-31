@@ -3,7 +3,7 @@
 Range Finder Driver Node for Hexapod Robot
 Publishes distance data from HC-SR04 ultrasonic sensor
 
-Based on reference implementation in reference/ultrasonic.py
+Based on working implementation in ../fn-hexapod/Code/Server/ultrasonic.py
 """
 
 import rclpy

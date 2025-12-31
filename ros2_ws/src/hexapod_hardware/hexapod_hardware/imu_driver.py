@@ -3,7 +3,7 @@
 IMU Driver Node for Hexapod Robot
 Publishes IMU data from MPU6050 sensor
 
-Based on reference implementation in reference/imu.py
+Based on working implementation in ../fn-hexapod/Code/Server/imu.py
 """
 
 import rclpy
