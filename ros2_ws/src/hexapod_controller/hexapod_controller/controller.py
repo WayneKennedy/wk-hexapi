@@ -137,6 +137,8 @@ class HexapodController(Node):
             ('gait.default', 'tripod'),
             ('gait.step_height', 40.0),
             ('gait.cycle_time', 1.0),
+            ('odometry.imu_fusion', True),
+            ('odometry.imu_yaw_weight', 0.98),
         ])
 
         self.leg_angles = self.get_parameter('body.leg_angles').value
@@ -189,6 +191,7 @@ class HexapodController(Node):
         self.imu_roll = 0.0
         self.imu_pitch = 0.0
         self.imu_yaw = 0.0
+        self.imu_yaw_rad = 0.0  # Raw yaw in radians for odometry sync
 
         # ===== Odometry State =====
         # Position in world frame (meters)
@@ -536,15 +539,21 @@ class HexapodController(Node):
 
         self.odom_pub.publish(odom)
 
-    def _reset_odometry(self):
-        """Reset odometry to origin."""
+    def _reset_odometry(self, sync_imu_yaw=True):
+        """Reset odometry to origin, optionally syncing yaw with IMU."""
         self.odom_x = 0.0
         self.odom_y = 0.0
-        self.odom_yaw = 0.0
         self.odom_vx = 0.0
         self.odom_vy = 0.0
         self.odom_vyaw = 0.0
-        self.get_logger().info('Odometry reset to origin')
+
+        # Sync yaw with IMU if enabled and IMU data available
+        if sync_imu_yaw and self.get_parameter('odometry.imu_fusion').value:
+            self.odom_yaw = self.imu_yaw_rad
+            self.get_logger().info(f'Odometry reset, yaw synced to IMU: {math.degrees(self.odom_yaw):.1f}°')
+        else:
+            self.odom_yaw = 0.0
+            self.get_logger().info('Odometry reset to origin')
 
     # ===== Body Pose Commands =====
 
@@ -943,12 +952,53 @@ class HexapodController(Node):
         # TODO: Convert quaternion to euler for orientation
 
     def imu_callback(self, msg):
-        """Handle IMU data for balance"""
-        # Convert quaternion to euler (simplified)
-        # For small angles: roll ≈ 2*qx, pitch ≈ 2*qy
-        self.imu_roll = math.degrees(2 * msg.orientation.x)
-        self.imu_pitch = math.degrees(2 * msg.orientation.y)
-        self.imu_yaw = math.degrees(2 * msg.orientation.z)
+        """Handle IMU data for balance and odometry yaw fusion"""
+        # Extract quaternion components
+        qx = msg.orientation.x
+        qy = msg.orientation.y
+        qz = msg.orientation.z
+        qw = msg.orientation.w
+
+        # Convert quaternion to euler angles (proper conversion)
+        # Roll (x-axis rotation)
+        sinr_cosp = 2.0 * (qw * qx + qy * qz)
+        cosr_cosp = 1.0 - 2.0 * (qx * qx + qy * qy)
+        self.imu_roll = math.degrees(math.atan2(sinr_cosp, cosr_cosp))
+
+        # Pitch (y-axis rotation)
+        sinp = 2.0 * (qw * qy - qz * qx)
+        if abs(sinp) >= 1:
+            self.imu_pitch = math.degrees(math.copysign(math.pi / 2, sinp))
+        else:
+            self.imu_pitch = math.degrees(math.asin(sinp))
+
+        # Yaw (z-axis rotation)
+        siny_cosp = 2.0 * (qw * qz + qx * qy)
+        cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz)
+        imu_yaw_rad = math.atan2(siny_cosp, cosy_cosp)
+        self.imu_yaw = math.degrees(imu_yaw_rad)
+
+        # Store raw IMU yaw for reset sync
+        self.imu_yaw_rad = imu_yaw_rad
+
+        # Fuse IMU yaw with odometry using complementary filter
+        if self.get_parameter('odometry.imu_fusion').value and self.is_walking:
+            # During walking, blend IMU yaw with gait-integrated yaw
+            alpha = self.get_parameter('odometry.imu_yaw_weight').value
+            # Compute difference and apply weighted correction
+            yaw_diff = imu_yaw_rad - self.odom_yaw
+            # Normalize difference to [-pi, pi]
+            while yaw_diff > math.pi:
+                yaw_diff -= 2 * math.pi
+            while yaw_diff < -math.pi:
+                yaw_diff += 2 * math.pi
+            # Apply correction
+            self.odom_yaw += alpha * yaw_diff
+            # Normalize result
+            while self.odom_yaw > math.pi:
+                self.odom_yaw -= 2 * math.pi
+            while self.odom_yaw < -math.pi:
+                self.odom_yaw += 2 * math.pi
 
     def pose_command_callback(self, msg):
         """Handle string pose commands"""

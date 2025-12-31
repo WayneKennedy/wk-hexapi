@@ -61,7 +61,7 @@ End state: Robot boots autonomously, accepts high-level mission requests ("walk 
 - [x] Integrate gait cycles to estimate displacement
 - [x] Publish `/odom` (nav_msgs/Odometry) with position and velocity
 - [x] Publish TF transform: `odom` → `base_link`
-- [ ] Fuse with IMU for rotation accuracy
+- [x] Fuse with IMU for rotation accuracy (complementary filter)
 - [ ] Add `MoveDistance` action server for goal-based movement
 
 ### Phase 3: Perception
